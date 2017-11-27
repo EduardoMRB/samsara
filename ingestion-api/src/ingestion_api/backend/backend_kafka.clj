@@ -19,27 +19,47 @@
    "message.send.max.retries" "5" })
 
 
+(defn topic-by-namespace [topics event]
+  (let [event-name (keyword (:eventName event))]
+    (if-let [event-ns (namespace event-name)]
+      (get topics event-ns)
+      (get topics "default"))))
+
+
+(defn determine-topic [topic-or-topics events]
+  (if (string? topic-or-topics)
+    topic-or-topics
+    (topic-by-namespace topic-or-topics events)))
+
+
 ;;
 ;;  Kafka backend sends the events into a Kafka topic as single
 ;;  json lines.
 ;;
-(deftype KafkaBackend [conf topic producer]
+(deftype KafkaBackend [conf topic-or-topics producer]
   EventsQueueingBackend
 
   (send [_ events]
     (->> events
-         (map (juxt (constantly topic)
+         (map (juxt (partial determine-topic topic-or-topics)
                     :sourceId
                     to-json))
          (map (fn [[topic key message]] (kp/message topic key message)))
          (kp/send-messages producer))))
 
 
-(defn- check-config
+(def Topic
+  (s/either
+   s/Str
+   {(s/required-key "default") s/Str
+    s/Str s/Str}))
+
+
+(defn check-config
   "Check the validity of a Kafka configuration"
   [config]
   (s/validate
-   {(s/required-key "topic") s/Str
+   {(s/required-key "topic") Topic
     (s/required-key "metadata.broker.list") s/Str
     s/Str s/Str}
    config))
@@ -49,7 +69,7 @@
   "Create a kafka backend"
   [config]
   (let [{:strs [topic] :as cfg} (->> config
-                                     (map (fn [[k v]] [(name k) (str v)]))
+                                     (map (fn [[k v]] [(name k) (if (map? v) v (str v))]))
                                      (into {})
                                      (merge default-producer-config))
 
@@ -57,6 +77,6 @@
         _ (check-config cfg)
 
         ;; connect to brokers
-        producer (kp/producer cfg)]
+        producer (kp/producer (dissoc cfg "topic"))]
 
     (KafkaBackend. cfg topic producer)))

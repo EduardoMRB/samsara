@@ -3,4 +3,12 @@
  :admin-server {:port 9010 :auto-reload true}
  :backend {:type :console :pretty? true}
  ;;:backend {:type :kafka :topic "ingestion" :metadata.broker.list "192.168.59.103:49154"}
-}
+
+ ;; Kafka backend with support for multiple topics
+ ;; :backend {:type :kafka
+ ;;           ;; mapping of namespace -> topic
+ ;;           :topic {"events"   "ingestion"
+ ;;                   "messages" "messages"
+ ;;                   "default"  "ingestion"}
+ ;;           :metadata.broker.list "192.168.59.103:49154"}
+ }
