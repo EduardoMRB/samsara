@@ -1,8 +1,8 @@
 {
  :server  {:port 9000 :auto-reload false}
 
- :backend {:type :kafka :topic "%%OUTPUT_TOPIC||ingestion%%"
-           :metadata.broker.list "%%>>kafka.*:9092%%"}
+ :backend {:type :kafka :topic %%OUTPUT_TOPIC||"ingestion"%%
+           :metadata.broker.list "%%BROKER_LIST%%"}
 
  :tracking {:enabled %%TRACKING_ENABLED||false%% :type :riemann
             :host "%%[addr]>RIEMANN:5555||localhost%%"
